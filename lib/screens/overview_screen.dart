@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../api/api_service.dart';
 import '../models/map_entry.dart' as model;
+import '../dialogs/edit_entry_dialog.dart';
 
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
@@ -77,45 +78,64 @@ class _OverviewScreenState extends State<OverviewScreen> {
       builder: (context) => Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            Text(
-              entry.title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Latitude: ${entry.lat.toStringAsFixed(6)}',
-              style: const TextStyle(color: Colors.grey),
-            ),
-            Text(
-              'Longitude: ${entry.lon.toStringAsFixed(6)}',
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: (entry.image != null && entry.image!.isNotEmpty)
-                  ? () {
-                      Navigator.pop(context);
-                      _showImageDialog(entry);
-                    }
-                  : null,
-              child: Container(
-                height: 150,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: (entry.image != null && entry.image!.isNotEmpty)
-                      ? Image.network(
-                          'https://labs.anontech.info/cse489/t3/${entry.image}',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Image.asset(
+                const SizedBox(height: 8),
+                Text(
+                  'Latitude: ${entry.lat.toStringAsFixed(6)}',
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                Text(
+                  'Longitude: ${entry.lon.toStringAsFixed(6)}',
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: (entry.image != null && entry.image!.isNotEmpty)
+                      ? () {
+                          Navigator.pop(context);
+                          _showImageDialog(entry);
+                        }
+                      : null,
+                  child: Container(
+                    height: 150,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: (entry.image != null && entry.image!.isNotEmpty)
+                          ? Image.network(
+                              'https://labs.anontech.info/cse489/t3/${entry.image}',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'assets/placeholder.jpg',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey[300],
+                                      child: const Center(
+                                        child: Icon(Icons.image_not_supported),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            )
+                          : Image.asset(
                               'assets/placeholder.jpg',
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
@@ -126,30 +146,55 @@ class _OverviewScreenState extends State<OverviewScreen> {
                                   ),
                                 );
                               },
-                            );
-                          },
-                        )
-                      : Image.asset(
-                          'assets/placeholder.jpg',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.grey[300],
-                              child: const Center(
-                                child: Icon(Icons.image_not_supported),
-                              ),
-                            );
-                          },
-                        ),
+                            ),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  (entry.image != null && entry.image!.isNotEmpty)
+                      ? 'Tap image to view full size'
+                      : 'No image available',
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              (entry.image != null && entry.image!.isNotEmpty)
-                  ? 'Tap image to view full size'
-                  : 'No image available',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Row(
+                children: [
+                  // Edit button - Yellow
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.yellow[600],
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showEditDialog(entry);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Delete button - Red
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showDeleteConfirmation(entry);
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -192,6 +237,57 @@ class _OverviewScreenState extends State<OverviewScreen> {
         ),
       ),
     );
+  }
+
+  void _showEditDialog(model.MapEntry entry) {
+    showDialog(
+      context: context,
+      builder: (context) =>
+          EditEntryDialog(entry: entry, onSuccess: _loadMapData),
+    );
+  }
+
+  void _showDeleteConfirmation(model.MapEntry entry) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Landmark'),
+        content: Text(
+          'Are you sure you want to delete "${entry.title}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _deleteEntry(entry.id);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteEntry(int id) async {
+    try {
+      await ApiService.deleteEntry(id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Landmark deleted successfully')),
+        );
+        await _loadMapData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error deleting landmark: $e')));
+      }
+    }
   }
 
   void _resetMapPosition() {

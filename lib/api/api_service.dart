@@ -1,9 +1,46 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 
 class ApiService {
   static const String baseUrl = 'https://labs.anontech.info/cse489/t3/api.php';
+
+  /// Resize and compress image to 800x600
+  static Future<File> _processImage(File imageFile) async {
+    try {
+      // Read the image
+      final bytes = await imageFile.readAsBytes();
+      final image = img.decodeImage(bytes);
+
+      if (image == null) {
+        throw Exception('Failed to decode image');
+      }
+
+      // Resize to 800x600
+      final resized = img.copyResize(
+        image,
+        width: 800,
+        height: 600,
+        interpolation: img.Interpolation.linear,
+      );
+
+      // Encode as JPEG with quality 85
+      final compressedBytes = img.encodeJpg(resized, quality: 85);
+
+      // Save to temp file
+      final tempDir = await getTemporaryDirectory();
+      final tempPath =
+          '${tempDir.path}/resized_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final tempFile = File(tempPath);
+      await tempFile.writeAsBytes(compressedBytes);
+
+      return tempFile;
+    } catch (e) {
+      throw Exception('Error processing image: $e');
+    }
+  }
 
   /// Create a new entry
   /// Takes title, latitude, longitude, and image file
@@ -15,6 +52,9 @@ class ApiService {
     required File image,
   }) async {
     try {
+      // Process image to 800x600
+      final processedImage = await _processImage(image);
+
       var request = http.MultipartRequest('POST', Uri.parse(baseUrl));
 
       // Add form fields
@@ -22,8 +62,10 @@ class ApiService {
       request.fields['lat'] = lat.toString();
       request.fields['lon'] = lon.toString();
 
-      // Add image file
-      request.files.add(await http.MultipartFile.fromPath('image', image.path));
+      // Add processed image file
+      request.files.add(
+        await http.MultipartFile.fromPath('image', processedImage.path),
+      );
 
       // Send request
       var streamedResponse = await request.send();
@@ -67,6 +109,9 @@ class ApiService {
   }) async {
     try {
       if (image != null) {
+        // Process image to 800x600
+        final processedImage = await _processImage(image);
+
         // If image is provided, use multipart form data
         var request = http.MultipartRequest('PUT', Uri.parse(baseUrl));
 
@@ -75,9 +120,9 @@ class ApiService {
         request.fields['lat'] = lat.toString();
         request.fields['lon'] = lon.toString();
 
-        // Add new image file
+        // Add processed image file
         request.files.add(
-          await http.MultipartFile.fromPath('image', image.path),
+          await http.MultipartFile.fromPath('image', processedImage.path),
         );
 
         var streamedResponse = await request.send();
