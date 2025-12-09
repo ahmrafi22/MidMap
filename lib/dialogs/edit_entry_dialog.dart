@@ -128,9 +128,9 @@ class _EditEntryDialogState extends State<EditEntryDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Edit Landmark',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 20),
               // Title field
@@ -173,9 +173,9 @@ class _EditEntryDialogState extends State<EditEntryDialog> {
               ),
               const SizedBox(height: 16),
               // Image section
-              const Text(
+              Text(
                 'Image (Optional)',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                style: Theme.of(context).textTheme.labelMedium,
               ),
               const SizedBox(height: 8),
               if (_selectedImage != null)
@@ -209,7 +209,9 @@ class _EditEntryDialogState extends State<EditEntryDialog> {
                         _selectedImage != null
                             ? 'New image selected: ${_selectedImage!.path.split('/').last}'
                             : 'Current image will be kept if no new image selected',
-                        style: TextStyle(color: Colors.grey[700]),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[700],
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),

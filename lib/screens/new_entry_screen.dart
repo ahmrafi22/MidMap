@@ -136,13 +136,9 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
                       ),
                     ],
                   ),
-                  child: const Text(
+                  child: Text(
                     'New Entry',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
               ),
@@ -295,21 +291,26 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
                         const SizedBox(width: 8),
                         Text(
                           'Keep pin inside Bangladesh',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue[700],
-                          ),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blue[700],
+                              ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Latitude (lat): 20.57 to 26.63',
-                      style: TextStyle(color: Colors.grey[700]),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
                     ),
                     Text(
                       'Longitude (lon): 88.02 to 92.68',
-                      style: TextStyle(color: Colors.grey[700]),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
                     ),
                   ],
                 ),
@@ -338,11 +339,10 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
                           ),
                         ),
                       )
-                    : const Text(
+                    : Text(
                         'Create Entry',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
               ),

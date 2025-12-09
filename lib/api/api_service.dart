@@ -50,7 +50,7 @@ class ApiService {
       request.fields['lon'] = lon.toString();
 
       if (imageFile != null) {
-        // Resize image to 800x600
+        // Resize image 
         final resizedImage = await _resizeImage(imageFile);
         final originalFilename = path.basename(imageFile.path);
         request.files.add(

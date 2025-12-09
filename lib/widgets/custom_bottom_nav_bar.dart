@@ -22,15 +22,17 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar> {
         color: Colors.white,
         border: Border(top: BorderSide(color: Colors.grey, width: 1.0)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(Icons.map_sharp, 'Overview', 0),
-            _buildNavItem(Icons.list_sharp, 'Records', 1),
-            _buildNavItem(Icons.add_location_alt_sharp, 'New Entry', 2),
-          ],
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildNavItem(Icons.map_sharp, 'Overview', 0),
+              _buildNavItem(Icons.list_sharp, 'Records', 1),
+              _buildNavItem(Icons.add_location_alt_sharp, 'New Entry', 2),
+            ],
+          ),
         ),
       ),
     );

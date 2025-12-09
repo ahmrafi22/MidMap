@@ -86,19 +86,20 @@ class _OverviewScreenState extends State<OverviewScreen> {
               children: [
                 Text(
                   entry.title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Latitude: ${entry.lat.toStringAsFixed(6)}',
-                  style: const TextStyle(color: Colors.grey),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
                 ),
                 Text(
                   'Longitude: ${entry.lon.toStringAsFixed(6)}',
-                  style: const TextStyle(color: Colors.grey),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
                 ),
                 const SizedBox(height: 16),
                 GestureDetector(
@@ -155,7 +156,9 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   (entry.image != null && entry.image!.isNotEmpty)
                       ? 'Tap image to view full size'
                       : 'No image available',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey),
                 ),
               ],
             ),
