@@ -68,6 +68,7 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final jsonResponse = json.decode(responseBody);
+        print('Create API Response: $jsonResponse');
         return jsonResponse;
       } else {
         throw Exception(
@@ -106,7 +107,9 @@ class ApiService {
         );
 
         if (response.statusCode == 200) {
-          return json.decode(response.body);
+          final jsonResponse = json.decode(response.body);
+          print('Update API Response: $jsonResponse');
+          return jsonResponse;
         } else {
           throw Exception(
             'Failed to update entity: ${response.statusCode} - ${response.body}',
@@ -135,7 +138,9 @@ class ApiService {
         final responseBody = await response.stream.bytesToString();
 
         if (response.statusCode == 200) {
-          return json.decode(responseBody);
+          final jsonResponse = json.decode(responseBody);
+          print('Update with image API Response: $jsonResponse');
+          return jsonResponse;
         } else {
           throw Exception(
             'Failed to update entity: ${response.statusCode} - $responseBody',

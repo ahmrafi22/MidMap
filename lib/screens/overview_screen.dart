@@ -1,8 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import '../api/api_service.dart';
+import '../repository/map_entry_repository.dart';
 import '../models/map_entry.dart' as model;
 import '../dialogs/edit_entry_dialog.dart';
 import '../providers/theme_provider.dart';
@@ -17,6 +18,7 @@ class OverviewScreen extends StatefulWidget {
 
 class _OverviewScreenState extends State<OverviewScreen> {
   late MapController _mapController;
+  final MapEntryRepository _repository = MapEntryRepository();
   bool _isLoading = true;
   String? _errorMessage;
   List<Marker> _markers = [];
@@ -28,17 +30,17 @@ class _OverviewScreenState extends State<OverviewScreen> {
     _loadMapData();
   }
 
-  Future<void> _loadMapData() async {
+  Future<void> _loadMapData({bool forceRefresh = false}) async {
     try {
       setState(() {
         _isLoading = true;
         _errorMessage = null;
       });
 
-      final response = await ApiService().getEntities();
-      final entries = response
-          .map((json) => model.MapEntry.fromJson(json))
-          .toList();
+      // Get entries from repository (will use cache if offline)
+      final entries = await _repository.getAllEntries(
+        forceRefresh: forceRefresh,
+      );
 
       final markers = <Marker>[];
       for (var entry in entries) {
@@ -120,36 +122,41 @@ class _OverviewScreenState extends State<OverviewScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: (entry.image != null && entry.image!.isNotEmpty)
-                          ? Image.network(
-                              'https://labs.anontech.info/cse489/t3/${entry.image}',
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Image.asset(
-                                  'assets/placeholder.jpg',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: Colors.grey[300],
-                                      child: const Center(
-                                        child: Icon(Icons.image_not_supported),
-                                      ),
-                                    );
-                                  },
-                                );
+                          ? FutureBuilder<String?>(
+                              future: _repository.getCachedImagePath(
+                                entry.image,
+                              ),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasData && snapshot.data != null) {
+                                  // Show cached image
+                                  return Image.file(
+                                    File(snapshot.data!),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      // Fall back to network
+                                      return Image.network(
+                                        'https://labs.anontech.info/cse489/t3/${entry.image}',
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return _buildPlaceholder();
+                                            },
+                                      );
+                                    },
+                                  );
+                                } else {
+                                  // No cached image, try network
+                                  return Image.network(
+                                    'https://labs.anontech.info/cse489/t3/${entry.image}',
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return _buildPlaceholder();
+                                    },
+                                  );
+                                }
                               },
                             )
-                          : Image.asset(
-                              'assets/placeholder.jpg',
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey[300],
-                                  child: const Center(
-                                    child: Icon(Icons.image_not_supported),
-                                  ),
-                                );
-                              },
-                            ),
+                          : _buildPlaceholder(),
                     ),
                   ),
                 ),
@@ -207,6 +214,19 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
+  Widget _buildPlaceholder() {
+    return Image.asset(
+      'assets/placeholder.jpg',
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: Colors.grey[300],
+          child: const Center(child: Icon(Icons.image_not_supported)),
+        );
+      },
+    );
+  }
+
   void _showImageDialog(model.MapEntry entry) {
     showDialog(
       context: context,
@@ -226,14 +246,38 @@ class _OverviewScreenState extends State<OverviewScreen> {
             ),
             Flexible(
               child: InteractiveViewer(
-                child: Image.network(
-                  'https://labs.anontech.info/cse489/t3/${entry.image}',
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[300],
-                      child: const Center(child: Icon(Icons.error)),
-                    );
+                child: FutureBuilder<String?>(
+                  future: _repository.getCachedImagePath(entry.image),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data != null) {
+                      return Image.file(
+                        File(snapshot.data!),
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Image.network(
+                            'https://labs.anontech.info/cse489/t3/${entry.image}',
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey[300],
+                                child: const Center(child: Icon(Icons.error)),
+                              );
+                            },
+                          );
+                        },
+                      );
+                    } else {
+                      return Image.network(
+                        'https://labs.anontech.info/cse489/t3/${entry.image}',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[300],
+                            child: const Center(child: Icon(Icons.error)),
+                          );
+                        },
+                      );
+                    }
                   },
                 ),
               ),
@@ -247,8 +291,10 @@ class _OverviewScreenState extends State<OverviewScreen> {
   void _showEditDialog(model.MapEntry entry) {
     showDialog(
       context: context,
-      builder: (context) =>
-          EditEntryDialog(entry: entry, onSuccess: _loadMapData),
+      builder: (context) => EditEntryDialog(
+        entry: entry,
+        onSuccess: () => _loadMapData(forceRefresh: true),
+      ),
     );
   }
 
@@ -279,12 +325,12 @@ class _OverviewScreenState extends State<OverviewScreen> {
 
   Future<void> _deleteEntry(int id) async {
     try {
-      await ApiService().deleteEntity(id);
+      await _repository.deleteEntry(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Landmark deleted successfully')),
         );
-        await _loadMapData();
+        await _loadMapData(forceRefresh: true);
       }
     } catch (e) {
       if (mounted) {
@@ -401,7 +447,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           _resetMapPosition();
-          await _loadMapData();
+          await _loadMapData(forceRefresh: true);
         },
         child: const Icon(Icons.refresh),
       ),
