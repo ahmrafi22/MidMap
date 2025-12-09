@@ -15,7 +15,7 @@ class MapEntry {
 
   factory MapEntry.fromJson(Map<String, dynamic> json) {
     // Helper function to safely convert to double
-    double _parseDouble(dynamic value) {
+    double parseDouble(dynamic value) {
       if (value == null || value == '') {
         return 0.0;
       } else if (value is int) {
@@ -31,8 +31,8 @@ class MapEntry {
     return MapEntry(
       id: json['id'] as int,
       title: json['title'] as String? ?? '',
-      lat: _parseDouble(json['lat']),
-      lon: _parseDouble(json['lon']),
+      lat: parseDouble(json['lat']),
+      lon: parseDouble(json['lon']),
       image: json['image'] as String?,
     );
   }

@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path;
 
 class ApiService {
   static const String baseUrl = 'https://labs.anontech.info/cse489/t3/api.php';
 
-  // Resize image to 800x600
+  // Resize image to 800x600 and convert to PNG
   Future<List<int>> _resizeImage(File imageFile) async {
     final bytes = await imageFile.readAsBytes();
     final image = img.decodeImage(bytes);
@@ -17,7 +18,7 @@ class ApiService {
     }
 
     final resized = img.copyResize(image, width: 800, height: 600);
-    return img.encodeJpg(resized);
+    return img.encodePng(resized);
   }
 
   // Get all entities
@@ -50,14 +51,14 @@ class ApiService {
       request.fields['lon'] = lon.toString();
 
       if (imageFile != null) {
-        // Resize image 
+        // Resize image
         final resizedImage = await _resizeImage(imageFile);
-        final originalFilename = path.basename(imageFile.path);
         request.files.add(
           http.MultipartFile.fromBytes(
             'image',
             resizedImage,
-            filename: originalFilename,
+            filename: 'image.png',
+            contentType: MediaType('image', 'png'),
           ),
         );
       }
@@ -69,7 +70,9 @@ class ApiService {
         final jsonResponse = json.decode(responseBody);
         return jsonResponse;
       } else {
-        throw Exception('Failed to create entity: ${response.statusCode}');
+        throw Exception(
+          'Failed to create entity: ${response.statusCode} - $responseBody',
+        );
       }
     } catch (e) {
       throw Exception('Failed to create entity: $e');
