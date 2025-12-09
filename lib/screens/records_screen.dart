@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../api/api_service.dart';
 import '../models/map_entry.dart' as model;
 import '../dialogs/edit_entry_dialog.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/dark_mode_toggle_button.dart';
 
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({super.key});
@@ -99,38 +102,14 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            margin: const EdgeInsets.only(top: 30),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  'Records',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-            ),
-          ),
           // List content
-          Expanded(
+          Positioned(
+            top: 80,
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
@@ -176,6 +155,43 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     ),
                   ),
           ),
+          // Header
+          Positioned(
+            top: 30,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Consumer<ThemeProvider>(
+                builder: (context, themeProvider, child) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: themeProvider.isDarkMode
+                          ? Colors.grey[900]
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      'Records',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          // Dark mode toggle button
+          Positioned(top: 30, right: 16, child: const DarkModeToggleButton()),
         ],
       ),
     );

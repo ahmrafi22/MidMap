@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 import '../api/api_service.dart';
 import '../models/map_entry.dart' as model;
 import '../dialogs/edit_entry_dialog.dart';
+import '../providers/theme_provider.dart';
+import '../widgets/dark_mode_toggle_button.dart';
 
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
@@ -17,7 +20,6 @@ class _OverviewScreenState extends State<OverviewScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   List<Marker> _markers = [];
-  bool _isDarkMode = false;
 
   @override
   void initState() {
@@ -327,74 +329,72 @@ class _OverviewScreenState extends State<OverviewScreen> {
             )
           : Stack(
               children: [
-                FlutterMap(
-                  mapController: _mapController,
-                  options: const MapOptions(
-                    initialCenter: LatLng(23.6850, 90.3563),
-                    initialZoom: 7.0,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: _isDarkMode
-                          ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                          : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: const ['a', 'b', 'c'],
-                      userAgentPackageName: 'com.example.midmap',
-                      retinaMode: RetinaMode.isHighDensity(context),
-                    ),
-                    MarkerLayer(markers: _markers),
-                  ],
+                Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, child) {
+                    return FlutterMap(
+                      mapController: _mapController,
+                      options: const MapOptions(
+                        initialCenter: LatLng(23.6850, 90.3563),
+                        initialZoom: 7.0,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: themeProvider.isDarkMode
+                              ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                              : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          subdomains: const ['a', 'b', 'c'],
+                          userAgentPackageName: 'com.example.midmap',
+                          retinaMode: RetinaMode.isHighDensity(context),
+                        ),
+                        MarkerLayer(markers: _markers),
+                      ],
+                    );
+                  },
                 ),
                 Positioned(
                   top: 30,
                   left: 0,
                   right: 0,
                   child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 6),
+                    child: Consumer<ThemeProvider>(
+                      builder: (context, themeProvider, child) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 8,
                           ),
-                        ],
-                      ),
-                      child: const Text(
-                        'Overview',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
+                          decoration: BoxDecoration(
+                            color: themeProvider.isDarkMode
+                                ? Colors.grey[900]
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'Overview',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: themeProvider.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
                 Positioned(
                   top: 30,
                   right: 16,
-                  child: SizedBox(
-                    height: 50,
-                    width: 50,
-                    child: FloatingActionButton(
-                      mini: true,
-                      onPressed: () {
-                        setState(() {
-                          _isDarkMode = !_isDarkMode;
-                        });
-                      },
-                      child: Icon(
-                        _isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                      ),
-                    ),
-                  ),
+                  child: const DarkModeToggleButton(),
                 ),
               ],
             ),
