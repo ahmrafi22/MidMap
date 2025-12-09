@@ -94,40 +94,63 @@ class _OverviewScreenState extends State<OverviewScreen> {
               'Longitude: ${entry.lon.toStringAsFixed(6)}',
               style: const TextStyle(color: Colors.grey),
             ),
-            if (entry.image != null && entry.image!.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                  _showImageDialog(entry);
-                },
-                child: Container(
-                  height: 150,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      'https://labs.anontech.info/cse489/t3/${entry.image}',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey[300],
-                          child: const Center(child: Icon(Icons.error)),
-                        );
-                      },
-                    ),
-                  ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: (entry.image != null && entry.image!.isNotEmpty)
+                  ? () {
+                      Navigator.pop(context);
+                      _showImageDialog(entry);
+                    }
+                  : null,
+              child: Container(
+                height: 150,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: (entry.image != null && entry.image!.isNotEmpty)
+                      ? Image.network(
+                          'https://labs.anontech.info/cse489/t3/${entry.image}',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset(
+                              'assets/placeholder.jpg',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[300],
+                                  child: const Center(
+                                    child: Icon(Icons.image_not_supported),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        )
+                      : Image.asset(
+                          'assets/placeholder.jpg',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey[300],
+                              child: const Center(
+                                child: Icon(Icons.image_not_supported),
+                              ),
+                            );
+                          },
+                        ),
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Tap image to view full size',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              (entry.image != null && entry.image!.isNotEmpty)
+                  ? 'Tap image to view full size'
+                  : 'No image available',
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
           ],
         ),
       ),
