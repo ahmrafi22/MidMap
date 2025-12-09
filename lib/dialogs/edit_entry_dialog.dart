@@ -88,12 +88,12 @@ class _EditEntryDialogState extends State<EditEntryDialog> {
     });
 
     try {
-      await ApiService.updateEntry(
+      await ApiService().updateEntity(
         id: widget.entry.id,
         title: _titleController.text,
         lat: lat,
         lon: lon,
-        image: _selectedImage,
+        imageFile: _selectedImage,
       );
 
       if (mounted) {

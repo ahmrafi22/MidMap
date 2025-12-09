@@ -33,7 +33,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         _errorMessage = null;
       });
 
-      final response = await ApiService.viewAll();
+      final response = await ApiService().getEntities();
       final entries = response
           .map((json) => model.MapEntry.fromJson(json))
           .toList();
@@ -274,7 +274,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
 
   Future<void> _deleteEntry(int id) async {
     try {
-      await ApiService.deleteEntry(id);
+      await ApiService().deleteEntity(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Landmark deleted successfully')),

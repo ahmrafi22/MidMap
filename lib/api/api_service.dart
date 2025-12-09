@@ -2,174 +2,160 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
-import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 class ApiService {
   static const String baseUrl = 'https://labs.anontech.info/cse489/t3/api.php';
 
-  /// Resize and compress image to 800x600
-  static Future<File> _processImage(File imageFile) async {
-    try {
-      // Read the image
-      final bytes = await imageFile.readAsBytes();
-      final image = img.decodeImage(bytes);
+  // Resize image to 800x600
+  Future<List<int>> _resizeImage(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    final image = img.decodeImage(bytes);
 
-      if (image == null) {
-        throw Exception('Failed to decode image');
-      }
-
-      // Resize to 800x600
-      final resized = img.copyResize(
-        image,
-        width: 800,
-        height: 600,
-        interpolation: img.Interpolation.linear,
-      );
-
-      // Encode as JPEG with quality 85
-      final compressedBytes = img.encodeJpg(resized, quality: 85);
-
-      // Save to temp file
-      final tempDir = await getTemporaryDirectory();
-      final tempPath =
-          '${tempDir.path}/resized_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final tempFile = File(tempPath);
-      await tempFile.writeAsBytes(compressedBytes);
-
-      return tempFile;
-    } catch (e) {
-      throw Exception('Error processing image: $e');
+    if (image == null) {
+      throw Exception('Failed to decode image');
     }
+
+    final resized = img.copyResize(image, width: 800, height: 600);
+    return img.encodeJpg(resized);
   }
 
-  /// Create a new entry
-  /// Takes title, latitude, longitude, and image file
-  /// Returns the created entity's ID
-  static Future<Map<String, dynamic>> createEntry({
-    required String title,
-    required double lat,
-    required double lon,
-    required File image,
-  }) async {
-    try {
-      // Process image to 800x600
-      final processedImage = await _processImage(image);
-
-      var request = http.MultipartRequest('POST', Uri.parse(baseUrl));
-
-      // Add form fields
-      request.fields['title'] = title;
-      request.fields['lat'] = lat.toString();
-      request.fields['lon'] = lon.toString();
-
-      // Add processed image file
-      request.files.add(
-        await http.MultipartFile.fromPath('image', processedImage.path),
-      );
-
-      // Send request
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to create entry: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error creating entry: $e');
-    }
-  }
-
-  /// Retrieve all entries
-  /// Returns a list of all entities
-  static Future<List<dynamic>> viewAll() async {
+  // Get all entities
+  Future<List<dynamic>> getEntities() async {
     try {
       final response = await http.get(Uri.parse(baseUrl));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as List<dynamic>;
       } else {
-        throw Exception('Failed to retrieve entries: ${response.statusCode}');
+        throw Exception('Failed to load entities: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error retrieving entries: $e');
+      throw Exception('Failed to load entities: $e');
     }
   }
 
-  /// Update an existing entry
-  /// If image is null, keeps the previous image
-  /// If image is provided, updates with new image using form data
-  static Future<Map<String, dynamic>> updateEntry({
+  // Create new entity
+  Future<Map<String, dynamic>> createEntity({
+    required String title,
+    required double lat,
+    required double lon,
+    File? imageFile,
+  }) async {
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse(baseUrl));
+
+      request.fields['title'] = title;
+      request.fields['lat'] = lat.toString();
+      request.fields['lon'] = lon.toString();
+
+      if (imageFile != null) {
+        // Resize image to 800x600
+        final resizedImage = await _resizeImage(imageFile);
+        final originalFilename = path.basename(imageFile.path);
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            resizedImage,
+            filename: originalFilename,
+          ),
+        );
+      }
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final jsonResponse = json.decode(responseBody);
+        return jsonResponse;
+      } else {
+        throw Exception('Failed to create entity: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to create entity: $e');
+    }
+  }
+
+  // Update entity
+  Future<Map<String, dynamic>> updateEntity({
     required int id,
     required String title,
     required double lat,
     required double lon,
-    File? image,
+    File? imageFile,
   }) async {
     try {
-      if (image != null) {
-        // Process image to 800x600
-        final processedImage = await _processImage(image);
-
-        // If image is provided, use multipart form data
-        var request = http.MultipartRequest('PUT', Uri.parse(baseUrl));
-
-        request.fields['id'] = id.toString();
-        request.fields['title'] = title;
-        request.fields['lat'] = lat.toString();
-        request.fields['lon'] = lon.toString();
-
-        // Add processed image file
-        request.files.add(
-          await http.MultipartFile.fromPath('image', processedImage.path),
-        );
-
-        var streamedResponse = await request.send();
-        var response = await http.Response.fromStream(streamedResponse);
-
-        if (response.statusCode == 200) {
-          return json.decode(response.body);
-        } else {
-          throw Exception('Failed to update entry: ${response.statusCode}');
-        }
-      } else {
-        // If no image, use x-www-form-urlencoded
+      if (imageFile == null) {
+        // Use application/x-www-form-urlencoded when there is no image
         final response = await http.put(
           Uri.parse(baseUrl),
-          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          headers: {
+            HttpHeaders.contentTypeHeader:
+                'application/x-www-form-urlencoded; charset=UTF-8',
+          },
           body: {
             'id': id.toString(),
             'title': title,
             'lat': lat.toString(),
             'lon': lon.toString(),
           },
+          encoding: Encoding.getByName('utf-8'),
         );
 
         if (response.statusCode == 200) {
           return json.decode(response.body);
         } else {
-          throw Exception('Failed to update entry: ${response.statusCode}');
+          throw Exception(
+            'Failed to update entity: ${response.statusCode} - ${response.body}',
+          );
+        }
+      } else {
+        // Use multipart/form-data when updating image
+        var request = http.MultipartRequest('PUT', Uri.parse(baseUrl));
+        request.fields['id'] = id.toString();
+        request.fields['title'] = title;
+        request.fields['lat'] = lat.toString();
+        request.fields['lon'] = lon.toString();
+
+        // Resize image to 800x600
+        final resizedImage = await _resizeImage(imageFile);
+        final originalFilename = path.basename(imageFile.path);
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            resizedImage,
+            filename: originalFilename,
+          ),
+        );
+
+        final response = await request.send();
+        final responseBody = await response.stream.bytesToString();
+
+        if (response.statusCode == 200) {
+          return json.decode(responseBody);
+        } else {
+          throw Exception(
+            'Failed to update entity: ${response.statusCode} - $responseBody',
+          );
         }
       }
     } catch (e) {
-      throw Exception('Error updating entry: $e');
+      throw Exception('Failed to update entity: $e');
     }
   }
 
-  /// Delete an entry by ID
-  /// Permanently removes the record
-  static Future<Map<String, dynamic>> deleteEntry(int id) async {
+  // Delete entity
+  Future<Map<String, dynamic>> deleteEntity(int id) async {
     try {
       final response = await http.delete(Uri.parse('$baseUrl?id=$id'));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
-        throw Exception('Failed to delete entry: ${response.statusCode}');
+        throw Exception('Failed to delete entity: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error deleting entry: $e');
+      throw Exception('Failed to delete entity: $e');
     }
   }
 }
