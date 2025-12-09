@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../api/api_service.dart';
+import '../repository/map_entry_repository.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/dark_mode_toggle_button.dart';
 
@@ -18,7 +18,7 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
   final _titleController = TextEditingController();
   final _latController = TextEditingController();
   final _lonController = TextEditingController();
-  final _apiService = ApiService();
+  final _repository = MapEntryRepository();
   final _imagePicker = ImagePicker();
 
   File? _selectedImage;
@@ -69,7 +69,8 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
       final lat = double.parse(_latController.text.trim());
       final lon = double.parse(_lonController.text.trim());
 
-      await _apiService.createEntity(
+      // Create entry using repository (will also refresh and cache data)
+      await _repository.createEntry(
         title: title,
         lat: lat,
         lon: lon,
@@ -79,7 +80,9 @@ class _NewEntryScreenState extends State<NewEntryScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Entry created successfully!'),
+            content: Text(
+              'Entry created successfully!',
+            ),
             backgroundColor: Colors.green,
           ),
         );

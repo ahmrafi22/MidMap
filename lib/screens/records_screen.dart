@@ -1,6 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../api/api_service.dart';
+import '../repository/map_entry_repository.dart';
 import '../models/map_entry.dart' as model;
 import '../dialogs/edit_entry_dialog.dart';
 import '../providers/theme_provider.dart';
@@ -14,6 +15,7 @@ class RecordsScreen extends StatefulWidget {
 }
 
 class _RecordsScreenState extends State<RecordsScreen> {
+  final MapEntryRepository _repository = MapEntryRepository();
   bool _isLoading = true;
   String? _errorMessage;
   List<model.MapEntry> _entries = [];
@@ -24,17 +26,17 @@ class _RecordsScreenState extends State<RecordsScreen> {
     _loadRecords();
   }
 
-  Future<void> _loadRecords() async {
+  Future<void> _loadRecords({bool forceRefresh = false}) async {
     try {
       setState(() {
         _isLoading = true;
         _errorMessage = null;
       });
 
-      final response = await ApiService().getEntities();
-      final entries = response
-          .map((json) => model.MapEntry.fromJson(json))
-          .toList();
+      // Get entries from repository (will use cache if offline)
+      final entries = await _repository.getAllEntries(
+        forceRefresh: forceRefresh,
+      );
 
       setState(() {
         _entries = entries;
@@ -51,8 +53,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
   void _showEditDialog(model.MapEntry entry) {
     showDialog(
       context: context,
-      builder: (context) =>
-          EditEntryDialog(entry: entry, onSuccess: _loadRecords),
+      builder: (context) => EditEntryDialog(
+        entry: entry,
+        onSuccess: () => _loadRecords(forceRefresh: true),
+      ),
     );
   }
 
@@ -83,12 +87,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   Future<void> _deleteEntry(int id) async {
     try {
-      await ApiService().deleteEntity(id);
+      await _repository.deleteEntry(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Landmark deleted successfully')),
         );
-        await _loadRecords();
+        await _loadRecords(forceRefresh: true);
       }
     } catch (e) {
       if (mounted) {
@@ -140,7 +144,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     ),
                   )
                 : RefreshIndicator(
-                    onRefresh: _loadRecords,
+                    onRefresh: () => _loadRecords(forceRefresh: true),
                     child: ListView.builder(
                       padding: const EdgeInsets.all(8),
                       itemCount: _entries.length,
@@ -209,6 +213,59 @@ class _LandmarkCard extends StatelessWidget {
     required this.onDelete,
   });
 
+  Widget _buildImageWidget(model.MapEntry entry) {
+    final repository = MapEntryRepository();
+
+    if (entry.image == null || entry.image!.isEmpty) {
+      return _buildPlaceholder();
+    }
+
+    return FutureBuilder<String?>(
+      future: repository.getCachedImagePath(entry.image),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data != null) {
+          // Show cached image
+          return Image.file(
+            File(snapshot.data!),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              // Fall back to network
+              return Image.network(
+                'https://labs.anontech.info/cse489/t3/${entry.image}',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildPlaceholder();
+                },
+              );
+            },
+          );
+        } else {
+          // No cached image, try network
+          return Image.network(
+            'https://labs.anontech.info/cse489/t3/${entry.image}',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildPlaceholder();
+            },
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Image.asset(
+      'assets/placeholder.jpg',
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: Colors.grey[300],
+          child: const Center(child: Icon(Icons.image_not_supported)),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dismissible(
@@ -253,37 +310,7 @@ class _LandmarkCard extends StatelessWidget {
                     child: SizedBox(
                       width: 100,
                       height: 100,
-                      child: (entry.image != null && entry.image!.isNotEmpty)
-                          ? Image.network(
-                              'https://labs.anontech.info/cse489/t3/${entry.image}',
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Image.asset(
-                                  'assets/placeholder.jpg',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: Colors.grey[300],
-                                      child: const Center(
-                                        child: Icon(Icons.image_not_supported),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            )
-                          : Image.asset(
-                              'assets/placeholder.jpg',
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey[300],
-                                  child: const Center(
-                                    child: Icon(Icons.image_not_supported),
-                                  ),
-                                );
-                              },
-                            ),
+                      child: _buildImageWidget(entry),
                     ),
                   ),
                   const SizedBox(height: 4),

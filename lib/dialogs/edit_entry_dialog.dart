@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../api/api_service.dart';
+import '../repository/map_entry_repository.dart';
 import '../models/map_entry.dart';
 
 class EditEntryDialog extends StatefulWidget {
@@ -88,7 +88,7 @@ class _EditEntryDialogState extends State<EditEntryDialog> {
     });
 
     try {
-      await ApiService().updateEntity(
+      await MapEntryRepository().updateEntry(
         id: widget.entry.id,
         title: _titleController.text,
         lat: lat,
