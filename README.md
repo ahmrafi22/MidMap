@@ -124,16 +124,6 @@ lib/
 
 ---
 
-## 📄 Documentation
-
-See [explain.md](./explain.md) for detailed documentation including:
-- Complete folder structure explanation
-- Backend CRUD function details
-- Offline storage and image caching flow diagrams
-- SQLite database schema
-- Navigation flow
-
----
 
 ## 🔗 API Endpoint
 
@@ -150,9 +140,12 @@ Backend: `https://labs.anontech.info/cse489/t3/api.php`
 
 ## 📱 Screenshots
 
-| Overview (Map) | Records (List) | New Entry |
-|----------------|----------------|-----------|
-| Interactive map with markers | Scrollable list with cards | Form with image picker |
+| | |
+|---|---|
+| ![Overview Map](screenshots/overview.png)<br>**Overview** - Interactive Map View | ![List View](screenshots/list%20veiw.png)<br>**Records** - List View |
+| ![Dark Mode List View](screenshots/dark%20mode%20list%20veiw.png)<br>**Dark Mode** - List View | ![New Entry Form](screenshots/new%20entry.png)<br>**New Entry** - Create Form |
+| ![Update Entry](screenshots/update%20entry.png)<br>**Update Entry** - Edit Dialog | ![Bottom Sheet](screenshots/bottom%20sheet.png)<br>**Bottom Sheet** - Details |
+| ![Swipe Right to Edit](screenshots/swipe%20right%20to%20edit.png)<br>**Swipe Right** - Edit | ![Swipe Left to Delete](screenshots/swipe%20left%20to%20delete.png)<br>**Swipe Left** - Delete |
 
 ---
 
